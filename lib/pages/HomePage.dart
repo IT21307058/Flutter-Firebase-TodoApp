@@ -1,7 +1,9 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_web_app/Custom/TodoCard.dart';
 import 'package:firebase_web_app/Service/Auth_Service.dart';
 import 'package:firebase_web_app/pages/AddTodo.dart';
 import 'package:firebase_web_app/pages/SignUpPage.dart';
+import 'package:firebase_web_app/pages/view_data.dart';
 import 'package:flutter/material.dart';
 
 class HomePage extends StatefulWidget {
@@ -12,6 +14,9 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
+  AuthClass authClass = AuthClass();
+  final Stream<QuerySnapshot> stream =
+      FirebaseFirestore.instance.collection("Todo").snapshots();
   @override
   Widget build(BuildContext context) {
     AuthClass authClass = AuthClass();
@@ -66,6 +71,8 @@ class _HomePageState extends State<HomePage> {
         BottomNavigationBarItem(
           icon: GestureDetector(
             onTap: () {
+              Navigator.push(context,
+                  MaterialPageRoute(builder: (builder) => AddTodoPage()));
               // Navigate to the AddTodoPage when the "Add" tab is tapped
               setState(() {
                 _currentIndex = 1; // Assuming the AddTodoPage is at index 1
@@ -97,29 +104,70 @@ class _HomePageState extends State<HomePage> {
           label: "Settings",
         ),
       ]),
-      body: SingleChildScrollView(
-        child: Container(
-          child: Container(
-            height: MediaQuery.of(context).size.height,
-            width: MediaQuery.of(context).size.width,
-            child: Column(
-              children: [
-                TodoCard(
-                  title: "Wake up bro",
-                  check: true,
-                  iconBGColor: Colors.white,
-                  iconColor: Colors.red,
-                  iconData: Icons.alarm,
-                  time: "10 AM",
-                ),
-                SizedBox(
-                  width: 10,
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
+      body: StreamBuilder(
+          stream: stream,
+          builder: (context, snapshot) {
+            if (!snapshot.hasData) {
+              return Center(
+                child: CircularProgressIndicator(),
+              );
+            }
+            return ListView.builder(
+              itemCount: snapshot.data?.docs.length,
+              itemBuilder: (context, index) {
+                IconData iconData;
+                Color iconColor;
+                Map<String, dynamic> document =
+                    snapshot.data?.docs[index].data() as Map<String, dynamic>;
+
+                switch (document["Category"]) {
+                  case "Food":
+                    iconData = Icons.local_grocery_store;
+                    iconColor = Colors.blue;
+                    break;
+                  case "Workout":
+                    iconData = Icons.alarm;
+                    iconColor = Colors.teal;
+                    break;
+                  case "Work":
+                    iconData = Icons.run_circle_outlined;
+                    iconColor = Colors.red;
+                    break;
+                  case "Run":
+                    iconData = Icons.audiotrack;
+                    iconColor = Colors.green;
+                    break;
+                  default:
+                    iconData = Icons.run_circle_outlined;
+                    iconColor = Colors.white;
+                }
+
+                return InkWell(
+                  onTap: () => {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (builder) => ViewData(
+                          document: document,
+                          id: snapshot.data!.docs[index].id,
+                        ),
+                      ),
+                    ),
+                  },
+                  child: TodoCard(
+                    title: document["title"] == null
+                        ? "Hey There"
+                        : document["title"],
+                    check: true,
+                    iconBGColor: Colors.white,
+                    iconColor: iconColor,
+                    iconData: iconData,
+                    time: "10 AM",
+                  ),
+                );
+              },
+            );
+          }),
     );
   }
 }

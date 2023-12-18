@@ -177,7 +177,7 @@ class _SignInPageState extends State<SignInPage> {
           child: circular
               ? CircularProgressIndicator()
               : Text(
-                  "Sign Up",
+                  "Sign In",
                   style: TextStyle(
                     fontSize: 20,
                     color: Colors.white,
